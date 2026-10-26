@@ -1,6 +1,4 @@
 
-# LOAN APPROVAL CLASSIFICATION PROJECT
-# DATA SCIENCE AND MACHINE LEARNING
 
 import os
 import pandas as pd
@@ -133,36 +131,31 @@ plt.figure()
 plt.show()
 
 
-# Objective 4: Income distribution
 
-plt.figure(figsize=(8, 5))
+# Objective 4: Average Loan Amount by Age
 
-plt.hist(df["person_income"], bins=30)
+avg_loan = df.groupby("person_age")["loan_amnt"].mean()
 
-plt.title("Applicant Income Distribution")
-plt.xlabel("Annual Income")
-plt.ylabel("Number of Applicants")
-plt.figure()
+plt.plot(avg_loan.index, avg_loan.values, marker="o")
+
+plt.title("Average Loan Amount by Age")
+plt.xlabel("Applicant Age")
+plt.ylabel("Average Loan Amount")
+plt.grid(True)
 plt.show()
 
-print("\nIncome statistics:")
-print(df["person_income"].describe())
 
 
-# Objective 5: Credit score and loan status
+# Objective 5: Home Ownership Distribution (Pie Chart)
 
-plt.figure(figsize=(8, 5))
-
-sns.boxplot(
-    data=df,
-    x="loan_status",
-    y="credit_score"
+df["person_home_ownership"].value_counts().plot(
+    kind="pie",
+    autopct="%1.1f%%",
+    startangle=90
 )
 
-plt.title("Credit Score vs Loan Status")
-plt.xlabel("Loan Status (0 = No, 1 = Yes)")
-plt.ylabel("Credit Score")
-plt.figure()
+plt.title("Distribution of Applicants by Home Ownership")
+plt.ylabel("")
 plt.show()
 
 
@@ -406,6 +399,10 @@ plt.ylim(0, 1)
 plt.xticks(rotation=20)
 plt.figure()
 plt.show()
+
+
+
+
 
 
 
