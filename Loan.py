@@ -71,6 +71,31 @@ sns.boxplot(y=df["credit_score"])
 plt.title("Credit Score Outliers")
 plt.show()
 
+columns = [
+    "person_income",
+    "loan_amnt",
+    "loan_int_rate",
+    "credit_score"
+]
+
+for col in columns:
+    Q1 = df[col].quantile(0.25)
+    Q3 = df[col].quantile(0.75)
+
+    IQR = Q3 - Q1
+
+    lower_limit = Q1 - 1.5 * IQR
+    upper_limit = Q3 + 1.5 * IQR
+
+    outliers = df[
+        (df[col] < lower_limit) |
+        (df[col] > upper_limit)
+    ]
+
+    print(f"\n{col}")
+    print("Total outliers:", len(outliers))
+    print("Percentage:", round(len(outliers) / len(df) * 100, 2), "%")
+
 
 # Objective 1: Loan Approval Status
 
@@ -195,8 +220,6 @@ X_train, X_test, y_train, y_test = train_test_split(
     random_state=42
 )
 
-print("\nTraining rows:", len(X_train))
-print("Testing rows:", len(X_test))
 
 
 # Scale features for Logistic Regression and KNN
@@ -373,7 +396,6 @@ plt.ylim(0, 1)
 plt.xticks(rotation=20)
 plt.tight_layout()
 plt.show()
-
 
 
 
