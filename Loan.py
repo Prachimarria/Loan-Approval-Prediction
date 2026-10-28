@@ -1,5 +1,4 @@
 
-
 import os
 import pandas as pd
 import numpy as np
@@ -7,11 +6,10 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
-from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, LabelEncoder
 
 from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import DecisionTreeClassifier, plot_tree
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
 
@@ -44,26 +42,18 @@ print(df.isnull().sum())
 
 df.columns = df.columns.str.strip()
 
-print("COLUMN NAMES")
+print("\nCOLUMN NAMES")
 print(df.columns.tolist())
 
-# 2. Check duplicate rows
-print("DUPLICATE ROWS")
+print("\nDUPLICATE ROWS")
 print("Total duplicates:", df.duplicated().sum())
-
 
 
 # ==================================================
 # 3. EXPLORATORY DATA ANALYSIS (EDA)
 # ==================================================
 
-
-
-
 # Outlier Detection using Boxplots
-
-
-# Outlier Detection using Four Separate Boxplots
 
 sns.boxplot(y=df["person_income"])
 plt.title("Person Income Outliers")
@@ -82,54 +72,47 @@ plt.title("Credit Score Outliers")
 plt.show()
 
 
-# Objective 1: Check loan approval status
+# Objective 1: Loan Approval Status
 
 print("\nLoan status counts:")
 print(df["loan_status"].value_counts())
 
-df["loan_status"].value_counts().sort_index().plot(
-    kind="bar"
-)
+df["loan_status"].value_counts().sort_index().plot(kind="bar")
 
 plt.title("Loan Approval Status")
 plt.xlabel("Loan Status (0 = No, 1 = Yes)")
 plt.ylabel("Number of Applicants")
-plt.figure()
+plt.tight_layout()
 plt.show()
 
 
-# Objective 2: Education levels of applicants
+# Objective 2: Education Levels
 
 print("\nEducation levels:")
 print(df["person_education"].value_counts())
 
-df["person_education"].value_counts().plot(
-    kind="bar"
-)
+df["person_education"].value_counts().plot(kind="bar")
 
 plt.title("Applicants by Education")
 plt.xlabel("Education")
 plt.ylabel("Number of Applicants")
-plt.figure()
+plt.tight_layout()
 plt.show()
 
 
-# Objective 3: Most common loan purposes
+# Objective 3: Loan Purposes
 
 print("\nLoan purposes:")
 print(df["loan_intent"].value_counts())
 
-df["loan_intent"].value_counts().plot(
-    kind="bar"
-)
+df["loan_intent"].value_counts().plot(kind="bar")
 
 plt.title("Loan Purpose Distribution")
 plt.xlabel("Loan Purpose")
 plt.ylabel("Number of Applicants")
 plt.xticks(rotation=30)
-plt.figure()
+plt.tight_layout()
 plt.show()
-
 
 
 # Objective 4: Average Loan Amount by Age
@@ -142,11 +125,11 @@ plt.title("Average Loan Amount by Age")
 plt.xlabel("Applicant Age")
 plt.ylabel("Average Loan Amount")
 plt.grid(True)
+plt.tight_layout()
 plt.show()
 
 
-
-# Objective 5: Home Ownership Distribution (Pie Chart)
+# Objective 5: Home Ownership Distribution
 
 df["person_home_ownership"].value_counts().plot(
     kind="pie",
@@ -156,14 +139,13 @@ df["person_home_ownership"].value_counts().plot(
 
 plt.title("Distribution of Applicants by Home Ownership")
 plt.ylabel("")
+plt.tight_layout()
 plt.show()
 
 
-# Objective 6: Correlation between numerical columns
+# Objective 6: Correlation Heatmap
 
-numeric_data = df.select_dtypes(
-    include=np.number
-)
+numeric_data = df.select_dtypes(include=np.number)
 
 plt.figure(figsize=(10, 7))
 
@@ -175,7 +157,7 @@ sns.heatmap(
 )
 
 plt.title("Correlation Heatmap")
-plt.figure()
+plt.tight_layout()
 plt.show()
 
 
@@ -187,40 +169,19 @@ plt.show()
 X = df.drop("loan_status", axis=1)
 y = df["loan_status"]
 
-# Separate numerical and categorical features
-numeric_features = X.select_dtypes(
-    include=np.number
-).columns
-
+# Identify categorical columns
 categorical_features = X.select_dtypes(
     include="object"
 ).columns
 
-# Fill missing numerical values
-num_imputer = SimpleImputer(strategy="median")
+# Label Encoding
+le = LabelEncoder()
 
-X[numeric_features] = num_imputer.fit_transform(
-    X[numeric_features]
-)
-
-# Fill missing categorical values
-cat_imputer = SimpleImputer(strategy="most_frequent")
-
-X[categorical_features] = cat_imputer.fit_transform(
-    X[categorical_features]
-)
-
-# Convert text categories into numerical columns
-X = pd.get_dummies(
-    X,
-    drop_first=True,
-    dtype=int
-)
+for col in categorical_features:
+    X[col] = le.fit_transform(X[col].astype(str))
 
 print("\nFeatures after encoding:")
 print(X.head())
-
-print("\nTotal rows for machine learning:", len(X))
 
 
 # ==================================================
@@ -231,15 +192,15 @@ X_train, X_test, y_train, y_test = train_test_split(
     X,
     y,
     test_size=0.2,
-    random_state=42,
-    stratify=y
+    random_state=42
 )
 
 print("\nTraining rows:", len(X_train))
 print("Testing rows:", len(X_test))
 
 
-# Scale features for KNN and Logistic Regression
+# Scale features for Logistic Regression and KNN
+
 scaler = StandardScaler()
 
 X_train_scaled = scaler.fit_transform(X_train)
@@ -265,8 +226,7 @@ models = {
 
     "Random Forest": RandomForestClassifier(
         n_estimators=100,
-        random_state=42,
-        n_jobs=-1
+        random_state=42
     )
 }
 
@@ -275,27 +235,22 @@ results = []
 for name, model in models.items():
 
     # Train and predict
-    if name in ["KNN", "Logistic Regression"]:
 
+    if name in ["KNN", "Logistic Regression"]:
         model.fit(X_train_scaled, y_train)
         prediction = model.predict(X_test_scaled)
 
     else:
-
         model.fit(X_train, y_train)
         prediction = model.predict(X_test)
 
     # Calculate accuracy
-    accuracy = accuracy_score(
-        y_test,
-        prediction
-    )
+
+    accuracy = accuracy_score(y_test, prediction)
 
     results.append([name, accuracy])
 
-    print("\n================================")
-    print("MODEL:", name)
-    print("================================")
+    print("\nMODEL:", name)
 
     print(
         "Accuracy:",
@@ -303,7 +258,8 @@ for name, model in models.items():
         "%"
     )
 
-    # Confusion matrix
+    # Confusion Matrix
+
     cm = confusion_matrix(
         y_test,
         prediction,
@@ -313,31 +269,8 @@ for name, model in models.items():
     print("\nConfusion Matrix:")
     print(cm)
 
-    # Plot confusion matrix
-    plt.figure(figsize=(5, 4))
+    # Classification Report
 
-    sns.heatmap(
-        cm,
-        annot=True,
-        fmt="d",
-        cmap="Blues",
-        xticklabels=["Not Approved", "Approved"],
-        yticklabels=["Not Approved", "Approved"]
-    )
-
-    plt.title(name + " Confusion Matrix")
-    plt.xlabel("Predicted")
-    plt.ylabel("Actual")
-    plt.tight_layout()
-
-    plt.savefig(
-        "output/" + name.lower().replace(" ", "_")
-        + "_confusion_matrix.png"
-    )
-
-    plt.show()
-
-    # Precision, recall and F1-score
     print("\nClassification Report:")
 
     print(
@@ -352,7 +285,53 @@ for name, model in models.items():
 
 
 # ==================================================
-# 7. COMPARE MODEL ACCURACY
+# 7. PLOT DECISION TREE
+# ==================================================
+
+dt_model = models["Decision Tree"]
+
+plt.figure(figsize=(22, 12))
+
+plot_tree(
+    dt_model,
+    feature_names=X_train.columns,
+    class_names=["Not Approved", "Approved"],
+    filled=True,
+    rounded=True,
+    max_depth=3,
+    fontsize=8
+)
+
+plt.title("Decision Tree - Loan Approval Prediction")
+plt.tight_layout()
+plt.show()
+
+
+# ==================================================
+# 8. PLOT ONE TREE FROM RANDOM FOREST
+# ==================================================
+
+rf_model = models["Random Forest"]
+
+plt.figure(figsize=(22, 12))
+
+plot_tree(
+    rf_model.estimators_[0],
+    feature_names=X_train.columns,
+    class_names=["Not Approved", "Approved"],
+    filled=True,
+    rounded=True,
+    max_depth=3,
+    fontsize=8
+)
+
+plt.title("First Decision Tree in Random Forest")
+plt.tight_layout()
+plt.show()
+
+
+# ==================================================
+# 9. COMPARE MODEL ACCURACY
 # ==================================================
 
 results_df = pd.DataFrame(
@@ -363,13 +342,8 @@ results_df = pd.DataFrame(
 print("\nModel Accuracy Comparison:")
 print(results_df)
 
-# Save results
-results_df.to_csv(
-    "output/model_results.csv",
-    index=False
-)
+# Find the best model by accuracy
 
-# Find best model by accuracy
 best_model = results_df.loc[
     results_df["Accuracy"].idxmax()
 ]
@@ -383,8 +357,8 @@ print(
     "%"
 )
 
-
 # Plot model comparison
+
 results_df.plot(
     x="Model",
     y="Accuracy",
@@ -397,11 +371,8 @@ plt.xlabel("Machine Learning Model")
 plt.ylabel("Accuracy")
 plt.ylim(0, 1)
 plt.xticks(rotation=20)
-plt.figure()
+plt.tight_layout()
 plt.show()
-
-
-
 
 
 
