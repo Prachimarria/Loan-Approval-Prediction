@@ -9,7 +9,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler, LabelEncoder
 
 from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeClassifier, plot_tree
+from sklearn.svm import SVC
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.ensemble import RandomForestClassifier
 
@@ -19,7 +19,10 @@ from sklearn.metrics import (
     classification_report
 )
 
+
+# ==================================================
 # 1. LOAD DATASET
+# ==================================================
 
 df = pd.read_csv("loan_data.csv")
 
@@ -28,24 +31,25 @@ df = pd.read_csv("loan_data.csv")
 # 2. DATA PREPROCESSING
 # ==================================================
 
-print("First five rows:")
+print("FIRST FIVE ROWS:")
 print(df.head())
 
-print("\nDataset shape:")
+print("\nDATASET SHAPE:")
 print(df.shape)
 
-print("\nDataset information:")
+print("\nDATASET INFORMATION:")
 df.info()
 
-print("\nMissing values:")
-print(df.isnull().sum())
-
+# Remove extra spaces from column names
 df.columns = df.columns.str.strip()
 
-print("\nCOLUMN NAMES")
+print("\nCOLUMN NAMES:")
 print(df.columns.tolist())
 
-print("\nDUPLICATE ROWS")
+print("\nMISSING VALUES:")
+print(df.isnull().sum())
+
+print("\nDUPLICATE ROWS:")
 print("Total duplicates:", df.duplicated().sum())
 
 
@@ -57,19 +61,26 @@ print("Total duplicates:", df.duplicated().sum())
 
 sns.boxplot(y=df["person_income"])
 plt.title("Person Income Outliers")
+plt.tight_layout()
 plt.show()
 
 sns.boxplot(y=df["loan_amnt"])
 plt.title("Loan Amount Outliers")
+plt.tight_layout()
 plt.show()
 
 sns.boxplot(y=df["loan_int_rate"])
 plt.title("Loan Interest Rate Outliers")
+plt.tight_layout()
 plt.show()
 
 sns.boxplot(y=df["credit_score"])
 plt.title("Credit Score Outliers")
+plt.tight_layout()
 plt.show()
+
+
+# Calculate outliers using IQR
 
 columns = [
     "person_income",
@@ -79,6 +90,7 @@ columns = [
 ]
 
 for col in columns:
+
     Q1 = df[col].quantile(0.25)
     Q3 = df[col].quantile(0.75)
 
@@ -94,15 +106,21 @@ for col in columns:
 
     print(f"\n{col}")
     print("Total outliers:", len(outliers))
-    print("Percentage:", round(len(outliers) / len(df) * 100, 2), "%")
+    print(
+        "Percentage:",
+        round(len(outliers) / len(df) * 100, 2),
+        "%"
+    )
 
 
 # Objective 1: Loan Approval Status
 
-print("\nLoan status counts:")
+print("\nLOAN STATUS COUNTS:")
 print(df["loan_status"].value_counts())
 
-df["loan_status"].value_counts().sort_index().plot(kind="bar")
+df["loan_status"].value_counts().sort_index().plot(
+    kind="bar"
+)
 
 plt.title("Loan Approval Status")
 plt.xlabel("Loan Status (0 = No, 1 = Yes)")
@@ -113,10 +131,12 @@ plt.show()
 
 # Objective 2: Education Levels
 
-print("\nEducation levels:")
+print("\nEDUCATION LEVELS:")
 print(df["person_education"].value_counts())
 
-df["person_education"].value_counts().plot(kind="bar")
+df["person_education"].value_counts().plot(
+    kind="bar"
+)
 
 plt.title("Applicants by Education")
 plt.xlabel("Education")
@@ -127,10 +147,12 @@ plt.show()
 
 # Objective 3: Loan Purposes
 
-print("\nLoan purposes:")
+print("\nLOAN PURPOSES:")
 print(df["loan_intent"].value_counts())
 
-df["loan_intent"].value_counts().plot(kind="bar")
+df["loan_intent"].value_counts().plot(
+    kind="bar"
+)
 
 plt.title("Loan Purpose Distribution")
 plt.xlabel("Loan Purpose")
@@ -144,7 +166,11 @@ plt.show()
 
 avg_loan = df.groupby("person_age")["loan_amnt"].mean()
 
-plt.plot(avg_loan.index, avg_loan.values, marker="o")
+plt.plot(
+    avg_loan.index,
+    avg_loan.values,
+    marker="o"
+)
 
 plt.title("Average Loan Amount by Age")
 plt.xlabel("Applicant Age")
@@ -200,12 +226,13 @@ categorical_features = X.select_dtypes(
 ).columns
 
 # Label Encoding
-le = LabelEncoder()
-
 for col in categorical_features:
+
+    le = LabelEncoder()
+
     X[col] = le.fit_transform(X[col].astype(str))
 
-print("\nFeatures after encoding:")
+print("\nFEATURES AFTER ENCODING:")
 print(X.head())
 
 
@@ -217,12 +244,12 @@ X_train, X_test, y_train, y_test = train_test_split(
     X,
     y,
     test_size=0.2,
-    random_state=42
+    random_state=42,
+    stratify=y
 )
 
 
-
-# Scale features for Logistic Regression and KNN
+# Scale features for Logistic Regression, SVM and KNN
 
 scaler = StandardScaler()
 
@@ -235,11 +262,14 @@ X_test_scaled = scaler.transform(X_test)
 # ==================================================
 
 models = {
+
     "Logistic Regression": LogisticRegression(
         max_iter=1000
     ),
 
-    "Decision Tree": DecisionTreeClassifier(
+    "SVM": SVC(
+        kernel="rbf",
+        C=1.0,
         random_state=42
     ),
 
@@ -249,23 +279,38 @@ models = {
 
     "Random Forest": RandomForestClassifier(
         n_estimators=100,
-        random_state=42
+        random_state=42,
+        n_jobs=-1
     )
 }
+
 
 results = []
 
 for name, model in models.items():
 
+    print("\n" + "=" * 50)
+    print("MODEL:", name)
+    print("=" * 50)
+
     # Train and predict
 
-    if name in ["KNN", "Logistic Regression"]:
+    if name in [
+        "KNN",
+        "Logistic Regression",
+        "SVM"
+    ]:
+
         model.fit(X_train_scaled, y_train)
+
         prediction = model.predict(X_test_scaled)
 
     else:
+
         model.fit(X_train, y_train)
+
         prediction = model.predict(X_test)
+
 
     # Calculate accuracy
 
@@ -273,13 +318,12 @@ for name, model in models.items():
 
     results.append([name, accuracy])
 
-    print("\nMODEL:", name)
-
     print(
         "Accuracy:",
         round(accuracy * 100, 2),
         "%"
     )
+
 
     # Confusion Matrix
 
@@ -291,6 +335,27 @@ for name, model in models.items():
 
     print("\nConfusion Matrix:")
     print(cm)
+
+
+    # Plot Confusion Matrix
+
+    plt.figure(figsize=(5, 4))
+
+    sns.heatmap(
+        cm,
+        annot=True,
+        fmt="d",
+        cmap="Blues",
+        xticklabels=["Not Approved", "Approved"],
+        yticklabels=["Not Approved", "Approved"]
+    )
+
+    plt.title(f"{name} - Confusion Matrix")
+    plt.xlabel("Predicted Label")
+    plt.ylabel("Actual Label")
+    plt.tight_layout()
+    plt.show()
+
 
     # Classification Report
 
@@ -308,35 +373,14 @@ for name, model in models.items():
 
 
 # ==================================================
-# 7. PLOT DECISION TREE
-# ==================================================
-
-dt_model = models["Decision Tree"]
-
-plt.figure(figsize=(22, 12))
-
-plot_tree(
-    dt_model,
-    feature_names=X_train.columns,
-    class_names=["Not Approved", "Approved"],
-    filled=True,
-    rounded=True,
-    max_depth=3,
-    fontsize=8
-)
-
-plt.title("Decision Tree - Loan Approval Prediction")
-plt.tight_layout()
-plt.show()
-
-
-# ==================================================
-# 8. PLOT ONE TREE FROM RANDOM FOREST
+# 7. PLOT ONE TREE FROM RANDOM FOREST
 # ==================================================
 
 rf_model = models["Random Forest"]
 
 plt.figure(figsize=(22, 12))
+
+from sklearn.tree import plot_tree
 
 plot_tree(
     rf_model.estimators_[0],
@@ -354,7 +398,7 @@ plt.show()
 
 
 # ==================================================
-# 9. COMPARE MODEL ACCURACY
+# 8. COMPARE MODEL ACCURACY
 # ==================================================
 
 results_df = pd.DataFrame(
@@ -362,8 +406,9 @@ results_df = pd.DataFrame(
     columns=["Model", "Accuracy"]
 )
 
-print("\nModel Accuracy Comparison:")
-print(results_df)
+print("\nMODEL ACCURACY COMPARISON:")
+print(results_df.to_string(index=False))
+
 
 # Find the best model by accuracy
 
@@ -371,7 +416,7 @@ best_model = results_df.loc[
     results_df["Accuracy"].idxmax()
 ]
 
-print("\nBest Model:")
+print("\nBEST MODEL:")
 print(best_model["Model"])
 
 print(
@@ -379,6 +424,7 @@ print(
     round(best_model["Accuracy"] * 100, 2),
     "%"
 )
+
 
 # Plot model comparison
 
@@ -396,7 +442,6 @@ plt.ylim(0, 1)
 plt.xticks(rotation=20)
 plt.tight_layout()
 plt.show()
-
 
 
 
